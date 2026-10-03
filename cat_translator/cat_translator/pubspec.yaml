@@ -1,0 +1,37 @@
+name: cat_translator
+description: "고양이 소리를 듣고 상황을 번역해서 알려주는 앱"
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # 오디오 녹음 (마이크 스트림)
+  record: ^5.1.2
+
+  # 온디바이스 추론 (YAMNet tflite 모델 실행)
+  tflite_flutter: ^0.11.0
+
+  # 번역 결과를 음성으로 읽어주기
+  flutter_tts: ^4.0.2
+
+  # 권한 요청 (마이크, 알림)
+  permission_handler: ^11.3.1
+
+  # 피드백/기록 로컬 저장
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
