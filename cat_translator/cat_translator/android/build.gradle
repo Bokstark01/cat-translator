@@ -7,14 +7,15 @@ allprojects {
 
 rootProject.buildDir = "../build"
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-    project.evaluationDependsOn(":app")
-
     // 일부 플러그인(tflite_flutter, flutter_tts 등)이 자체 build.gradle에서
     // Java 1.8/11 등으로 고정해버려 새 Kotlin(17 타깃)과 충돌하는 문제를 막기 위해,
     // 각 서브프로젝트 설정이 다 끝난 뒤(afterEvaluate) 전체 Java/Kotlin 컴파일
     // 타깃을 17로 강제 통일한다. (subprojects 블록만으로는 각 플러그인이
     // 자기 build.gradle에서 나중에 다시 덮어써 버리는 경우가 있어 afterEvaluate 필요)
+    // 주의: 반드시 evaluationDependsOn(":app") 호출보다 먼저 afterEvaluate를
+    // 등록해야 한다. :app은 자기 자신에 대해 evaluationDependsOn을 호출하는데,
+    // 이게 :app 평가를 즉시 끝내버려서 이후에 afterEvaluate를 걸면
+    // "project is already evaluated" 에러가 난다.
     afterEvaluate { proj ->
         if (proj.hasProperty("android")) {
             proj.android {
@@ -36,6 +37,9 @@ subprojects {
             }
         }
     }
+
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {
