@@ -23,6 +23,10 @@ subprojects {
                     sourceCompatibility JavaVersion.VERSION_17
                     targetCompatibility JavaVersion.VERSION_17
                 }
+                // tflite_flutter 등 일부 플러그인이 compileSdk를 오래된 버전(31)으로
+                // 고정해 두어 최신 androidx 라이브러리(34+ 요구)와 충돌하는 문제를 막기
+                // 위해 전체 서브프로젝트의 compileSdk를 36으로 통일한다.
+                compileSdkVersion 36
             }
         }
         proj.tasks.withType(JavaCompile).configureEach {
