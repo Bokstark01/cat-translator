@@ -11,6 +11,7 @@ import 'audio_classifier.dart';
 import 'cat_situation.dart';
 import 'cat_sound_mapper.dart';
 import 'feedback_store.dart';
+import 'intro_screen.dart';
 
 void main() {
     runApp(const CatTranslatorApp());
@@ -27,7 +28,7 @@ class CatTranslatorApp extends StatelessWidget {
                             colorSchemeSeed: const Color(0xFFFF9933),
                             useMaterial3: true,
                           ),
-                  home: const ChatHomePage(),
+                  home: const IntroScreen(),
                 );
     }
 }
