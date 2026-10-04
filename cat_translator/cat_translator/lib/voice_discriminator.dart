@@ -262,7 +262,7 @@ List<Cplx> _polynomialRoots(List<double> coeffsHighToLow) {
       for (int j = 0; j < n; j++) {
         if (j != i) denom = denom * (roots[i] - roots[j]);
       }
-      if (denom.abs() < 1e-12) {
+      if (denom.abs < 1e-12) {
         newRoots.add(roots[i]);
         continue;
       }
