@@ -27,5 +27,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google AdMob 테스트용 App ID (실제 출시 전 발급받은 ID로 교체 필요) -->
+        <meta-data
+                android:name="com.google.android.gms.ads.APPLICATION_ID"
+                android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
 </manifest>
