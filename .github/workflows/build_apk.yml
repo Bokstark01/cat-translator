@@ -38,20 +38,23 @@ jobs:
         run: flutter analyze || true
 
       - name: 릴리스 서명 키 설정 (GitHub Secrets에 등록된 경우에만 적용)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          cat > android/key.properties <<PROPS
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+            cat > android/key.properties <<PROPS
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=$GITHUB_WORKSPACE/cat_translator/cat_translator/android/app/upload-keystore.jks
           PROPS
+          else
+            echo "KEYSTORE_BASE64 시크릿이 없어 release 서명 설정을 건너뜁니다 (debug 서명으로 빌드됩니다)."
+          fi
 
       - name: APK 빌드 (휴대폰 직접 설치/테스트용)
         run: flutter build apk --release
