@@ -1,56 +1,79 @@
 plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
+        id "com.android.application"
+        id "kotlin-android"
+        id "dev.flutter.flutter-gradle-plugin"
 }
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
-        localProperties.load(reader)
-    }
+        localPropertiesFile.withReader("UTF-8") { reader ->
+                    localProperties.load(reader)
+        }
 }
 
 def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
 def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
+// 플레이스토어 출시용 서명키 정보 (key.properties가 있을 때만 사용, 없으면 debug키로 폴백).
+// key.properties와 keystore 파일 자체는 git에 올리지 않고 CI에서 GitHub Secrets로 생성한다.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.withReader("UTF-8") { reader ->
+                    keystoreProperties.load(reader)
+        }
+}
+
 android {
-    namespace "com.bokstark.cat_translator"
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+        namespace "com.bokstark.cat_translator"
+        compileSdk flutter.compileSdkVersion
+        ndkVersion flutter.ndkVersion
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    defaultConfig {
-        applicationId "com.bokstark.cat_translator"
-        minSdk 23
-        targetSdk flutter.targetSdkVersion
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
+        compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_1_8
+                    targetCompatibility JavaVersion.VERSION_1_8
         }
-    }
-
-    packagingOptions {
-        jniLibs {
-            useLegacyPackaging = true
+        kotlinOptions {
+                    jvmTarget = "1.8"
         }
-    }
+
+        defaultConfig {
+                    applicationId "com.bokstark.cat_translator"
+                    minSdk 23
+                    targetSdk flutter.targetSdkVersion
+                    versionCode flutterVersionCode.toInteger()
+                    versionName flutterVersionName
+        }
+
+        signingConfigs {
+                    release {
+                                    if (keystorePropertiesFile.exists()) {
+                                                        keyAlias keystoreProperties['keyAlias']
+                                                        keyPassword keystoreProperties['keyPassword']
+                                                        storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+                                                        storePassword keystoreProperties['storePassword']
+                                    }
+                    }
+        }
+
+        buildTypes {
+                    release {
+                                    // key.properties가 있으면(플레이스토어 출시용 서명키) release 서명을 쓰고,
+                                    // 없으면(시크릿 설정 전) 기존처럼 debug 키로 서명해서 빌드가 깨지지 않게 한다.
+                                    signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+                                    minifyEnabled false
+                                    shrinkResources false
+                    }
+        }
+
+        packagingOptions {
+                    jniLibs {
+                                    useLegacyPackaging = true
+                    }
+        }
 }
 
 flutter {
-    source "../.."
+        source "../.."
 }
