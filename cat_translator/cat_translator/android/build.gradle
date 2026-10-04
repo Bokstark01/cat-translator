@@ -10,17 +10,29 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(":app")
 
-    // 일부 플러그인(tflite_flutter 등)이 Java 1.8로 고정돼 있어
-    // 새 Kotlin(17 타깃)과 충돌하는 문제를 막기 위해 전체 서브프로젝트의
-    // Java/Kotlin 컴파일 타깃을 17로 통일한다.
-    tasks.withType(JavaCompile).configureEach {
-        sourceCompatibility = JavaVersion.VERSION_17.toString()
-        targetCompatibility = JavaVersion.VERSION_17.toString()
-    }
-    plugins.withId("org.jetbrains.kotlin.android") {
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
+    // 일부 플러그인(tflite_flutter, flutter_tts 등)이 자체 build.gradle에서
+    // Java 1.8/11 등으로 고정해버려 새 Kotlin(17 타깃)과 충돌하는 문제를 막기 위해,
+    // 각 서브프로젝트 설정이 다 끝난 뒤(afterEvaluate) 전체 Java/Kotlin 컴파일
+    // 타깃을 17로 강제 통일한다. (subprojects 블록만으로는 각 플러그인이
+    // 자기 build.gradle에서 나중에 다시 덮어써 버리는 경우가 있어 afterEvaluate 필요)
+    afterEvaluate { proj ->
+        if (proj.hasProperty("android")) {
+            proj.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        proj.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17.toString()
+            targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
+        proj.plugins.withId("org.jetbrains.kotlin.android") {
+            proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions {
+                    jvmTarget = "17"
+                }
             }
         }
     }
