@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'main.dart';
+import 'cat_name_screen.dart';
 
 /// 앱 시작 시 채팅 화면으로 넘어가기 전에 보여주는 인트로 애니메이션.
 /// 화면 중앙에 집사(사람)가 서 있고, 맞은편에서 고양이가 달려와
@@ -50,7 +50,7 @@ class _IntroScreenState extends State<IntroScreen>
                             Future.delayed(const Duration(milliseconds: 700), () {
                                         if (!mounted) return;
                                         Navigator.of(context).pushReplacement(
-                                                      MaterialPageRoute(builder: (_) => const ChatHomePage()),
+                                                      MaterialPageRoute(builder: (_) => const CatNameScreen()),
                                                     );
                             });
                   }
