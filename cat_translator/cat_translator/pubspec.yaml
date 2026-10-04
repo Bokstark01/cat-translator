@@ -26,6 +26,9 @@ dependencies:
   # 피드백/기록 로컬 저장
   shared_preferences: ^2.3.2
 
+  # 하단 배너 광고 (Google AdMob)
+  google_mobile_ads: ^5.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
