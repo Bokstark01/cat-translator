@@ -12,7 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # 오디오 녹음 (마이크 스트림)
-  record: ^5.1.2
+  record: ^7.1.1
 
   # 온디바이스 추론 (YAMNet tflite 모델 실행)
   tflite_flutter: ^0.11.0
