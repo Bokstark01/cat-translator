@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:flutter_tts/flutter_tts.dart';
@@ -9,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 import 'audio_classifier.dart';
+import 'cat_cue.dart';
 import 'cat_situation.dart';
 import 'cat_sound_mapper.dart';
 import 'feedback_store.dart';
@@ -68,7 +70,10 @@ class CatTranslatorApp extends StatelessWidget {
 /// 가운데 작게 뜨는 "시스템 알림" 메시지.
 class ChatEntry {
   final bool isSystem;
+  // 사용자가 "말 걸기"로 고양이에게 신호음을 들려준 메시지인 경우.
+  final bool isUser;
   final CatSituation? situation;
+  final CatCue? cue;
   final double confidence;
   final DateTime time;
   final String? systemText;
@@ -82,7 +87,9 @@ class ChatEntry {
 
   ChatEntry.system(String text)
       : isSystem = true,
+        isUser = false,
         situation = null,
+        cue = null,
         confidence = 0,
         time = DateTime.now(),
         systemText = text,
@@ -93,10 +100,24 @@ class ChatEntry {
   ChatEntry.cat(CatSituation situation, double confidence,
       {this.alternatives = const []})
       : isSystem = false,
+        isUser = false,
         situation = situation,
+        cue = null,
         confidence = confidence,
         time = DateTime.now(),
         systemText = null,
+        feedbackCorrect = null,
+        correctedSituation = null;
+
+  ChatEntry.user(CatCue cue)
+      : isSystem = false,
+        isUser = true,
+        situation = null,
+        cue = cue,
+        confidence = 0,
+        time = DateTime.now(),
+        systemText = null,
+        alternatives = const [],
         feedbackCorrect = null,
         correctedSituation = null;
 }
@@ -117,6 +138,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
   final _featureExtractor = SimpleFeatureExtractor(16000);
   final _feedbackStore = FeedbackStore();
   final _scrollController = ScrollController();
+  final _cuePlayer = AudioPlayer();
 
   StreamSubscription<Uint8List>? _micSub;
   final List<int> _pcmBuffer = [];
@@ -365,7 +387,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
   }
 
   /// 상위 3개 선택지에 정답이 없을 때, 12가지 상황 전체 중에서
-  /// 직접 골라볼 수 있는 목록을 바텀시트로 보여준다.
+  /// 진접 골라볼 수 있는 목록을 바텀시트로 보여준다.
   Future<void> _showFullSituationPicker(ChatEntry entry) async {
     final chosen = await showModalBottomSheet<CatSituation>(
       context: context,
@@ -459,7 +481,98 @@ class _ChatHomePageState extends State<ChatHomePage> {
     _classifier.close();
     _scrollController.dispose();
     _bannerAd?.dispose();
+    _cuePlayer.dispose();
     super.dispose();
+  }
+
+  /// "말 걸기" 바텀시트에서 의도 하나를 고르면, 그에 맞는 합성 신호음을
+  /// 재생하고 채팅방에 "나 -> 고양이" 메시지로 남긴다.
+  Future<void> _sendCatCue(CatCue cue) async {
+    try {
+      await _cuePlayer.stop();
+      await _cuePlayer.play(AssetSource(kCatCueInfo[cue]!.assetPath));
+    } catch (e) {
+      _addSystemMessage('소리를 재생하지 못했어요: $e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _messages.add(ChatEntry.user(cue));
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _showCatCuePicker() async {
+    final chosen = await showModalBottomSheet<CatCue>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '어떤 소리를 들려줄까요?',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '실제 고양이 언어로 "번역"하는 기능은 아니에요. 주의를 끌거나\n'
+                  '편안하게 해주는 데 도움이 될 수 있다고 알려진 소리예요 🐾',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final cue in CatCue.values)
+                      _cueTile(ctx, cue),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (chosen != null) {
+      await _sendCatCue(chosen);
+    }
+  }
+
+  Widget _cueTile(BuildContext ctx, CatCue cue) {
+    final info = kCatCueInfo[cue]!;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.of(ctx).pop(cue),
+      child: Container(
+        width: 150,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3E0),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFFD9A0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(info.emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(height: 6),
+            Text(info.label,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text(
+              info.description,
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -530,6 +643,11 @@ class _ChatHomePageState extends State<ChatHomePage> {
       ),
       actions: [
         IconButton(
+          tooltip: '고양이에게 말 걸기',
+          icon: const Icon(Icons.campaign_outlined),
+          onPressed: _showCatCuePicker,
+        ),
+        IconButton(
           tooltip: '채팅방 나가기',
           icon: const Icon(Icons.exit_to_app),
           onPressed: _confirmExit,
@@ -538,6 +656,9 @@ class _ChatHomePageState extends State<ChatHomePage> {
     );
   }
   Widget _buildEntry(ChatEntry entry) {
+    if (entry.isUser) {
+      return _buildUserCueEntry(entry);
+    }
     if (entry.isSystem) {
       return Center(
         child: Container(
@@ -633,6 +754,51 @@ class _ChatHomePageState extends State<ChatHomePage> {
       ),
     );
   }
+  /// 사용자가 "말 걸기"로 고양이에게 신호음을 보낸 메시지 (채팅방 오른쪽에 표시).
+  Widget _buildUserCueEntry(ChatEntry entry) {
+    final info = kCatCueInfo[entry.cue]!;
+    final timeLabel = _formatTime(entry.time);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(timeLabel,
+              style: const TextStyle(fontSize: 10, color: Colors.black45)),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFB84D),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(4),
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Text(
+                '${info.emoji} "${info.label}" 소리를 들려줬어요',
+                style: const TextStyle(
+                    fontSize: 15, height: 1.3, color: Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.white,
+            child: Text('🙂', style: TextStyle(fontSize: 18)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFeedbackRow(ChatEntry entry) {
     // 1) 아직 맞아요/아니에요를 누르지 않은 경우.
     if (entry.feedbackCorrect == null) {
