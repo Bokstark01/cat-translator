@@ -29,6 +29,9 @@ dependencies:
   # 하단 배너 광고 (Google AdMob)
   google_mobile_ads: ^5.1.0
 
+  # "말 걸기" 기능에서 고양이 신호음(합성 효과음) 재생
+  audioplayers: ^6.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -38,3 +41,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/models/
+    - assets/sounds/
