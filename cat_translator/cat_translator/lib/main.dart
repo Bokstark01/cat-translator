@@ -387,7 +387,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
   }
 
   /// 상위 3개 선택지에 정답이 없을 때, 12가지 상황 전체 중에서
-  /// 진접 골라볼 수 있는 목록을 바텀시트로 보여준다.
+  /// 직접 골라볼 수 있는 목록을 바텀시트로 보여준다.
   Future<void> _showFullSituationPicker(ChatEntry entry) async {
     final chosen = await showModalBottomSheet<CatSituation>(
       context: context,
@@ -505,34 +505,39 @@ class _ChatHomePageState extends State<ChatHomePage> {
     final chosen = await showModalBottomSheet<CatCue>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (ctx) {
+        final maxHeight = MediaQuery.of(ctx).size.height * 0.75;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '어떤 소리를 들려줄까요?',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '실제 고양이 언어로 "번역"하는 기능은 아니에요. 주의를 끌거나\n'
-                  '편안하게 해주는 데 도움이 될 수 있다고 알려진 소리예요 🐾',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final cue in CatCue.values)
-                      _cueTile(ctx, cue),
-                  ],
-                ),
-              ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '어떤 소리를 들려줄까요?',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '실제 고양이 언어로 "번역"하는 기능은 아니에요. 주의를 끌거나\n'
+                    '편안하게 해주는 데 도움이 될 수 있다고 알려진 소리예요 🐾',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      for (final cue in CatCue.values)
+                        _cueTile(ctx, cue),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -642,11 +647,6 @@ class _ChatHomePageState extends State<ChatHomePage> {
         ],
       ),
       actions: [
-        IconButton(
-          tooltip: '고양이에게 말 걸기',
-          icon: const Icon(Icons.campaign_outlined),
-          onPressed: _showCatCuePicker,
-        ),
         IconButton(
           tooltip: '채팅방 나가기',
           icon: const Icon(Icons.exit_to_app),
@@ -927,18 +927,36 @@ class _ChatHomePageState extends State<ChatHomePage> {
         child: Row(
           children: [
             Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _isListening
-                      ? '${widget.catName}의 소리를 듣고 있어요...'
-                      : (_modelReady ? '마이크 버튼을 눌러 듣기를 시작하세요' : '모델 준비 중...'),
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: _isListening ? null : _showCatCuePicker,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _isListening
+                              ? '${widget.catName}의 소리를 듣고 있어요...'
+                              : (_modelReady
+                                  ? '눌러서 고양이에게 소리 들려주기'
+                                  : '모델 준비 중...'),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13),
+                        ),
+                      ),
+                      if (!_isListening) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.campaign_outlined,
+                            size: 18, color: Colors.black38),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
