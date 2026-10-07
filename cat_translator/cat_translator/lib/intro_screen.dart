@@ -424,4 +424,386 @@ class _TitleLockup extends StatelessWidget {
 
 /// 집사(사람) 캐릭터. 둥글둥글한 플랫 일러스트 스타일로 그려서
 /// 이모지보다 또렷하고 자연스럽게 보이도록 한다.
-clas
+class _PersonPainter extends CustomPainter {
+  _PersonPainter({required this.blink});
+  final bool blink;
+
+  static const _skin = Color(0xFFFFD9B3);
+  static const _hair = Color(0xFF6B4A2B);
+  static const _sweater = Color(0xFFFF9933);
+  static const _sweaterShade = Color(0xFFE67E22);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // 다리/신발.
+    final shoePaint = Paint()..color = const Color(0xFF4A3524);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.22, h * 0.90, w * 0.22, h * 0.10),
+          const Radius.circular(6)),
+      shoePaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.56, h * 0.90, w * 0.22, h * 0.10),
+          const Radius.circular(6)),
+      shoePaint,
+    );
+
+    // 바지(살짝 보이는 부분).
+    final pantsPaint = Paint()..color = const Color(0xFF7A6248);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.20, h * 0.80, w * 0.24, h * 0.14),
+          const Radius.circular(8)),
+      pantsPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.56, h * 0.80, w * 0.24, h * 0.14),
+          const Radius.circular(8)),
+      pantsPaint,
+    );
+
+    // 몸통(스웨터) - 둥근 사다리꼴 느낌의 RRect.
+    final bodyRect = Rect.fromLTWH(w * 0.10, h * 0.42, w * 0.80, h * 0.44);
+    final bodyPaint = Paint()..color = _sweater;
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(bodyRect,
+          topLeft: const Radius.circular(34),
+          topRight: const Radius.circular(34),
+          bottomLeft: const Radius.circular(18),
+          bottomRight: const Radius.circular(18)),
+      bodyPaint,
+    );
+    // 스웨터 라인 장식.
+    final linePaint = Paint()
+      ..color = _sweaterShade
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      Offset(w * 0.16, h * 0.62),
+      Offset(w * 0.84, h * 0.62),
+      linePaint,
+    );
+
+    // 팔 (환영하듯 살짝 벌림).
+    final armPaint = Paint()..color = _sweater;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * -0.02, h * 0.46, w * 0.20, h * 0.30),
+          const Radius.circular(14)),
+      armPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.82, h * 0.46, w * 0.20, h * 0.30),
+          const Radius.circular(14)),
+      armPaint,
+    );
+    final handPaint = Paint()..color = _skin;
+    canvas.drawCircle(Offset(w * 0.06, h * 0.76), w * 0.08, handPaint);
+    canvas.drawCircle(Offset(w * 0.94, h * 0.76), w * 0.08, handPaint);
+
+    // 목.
+    final neckPaint = Paint()..color = _skin;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.42, h * 0.36, w * 0.16, h * 0.12),
+          const Radius.circular(6)),
+      neckPaint,
+    );
+
+    // 얼굴.
+    final faceCenter = Offset(w * 0.5, h * 0.22);
+    final faceRadius = w * 0.30;
+    final facePaint = Paint()..color = _skin;
+    canvas.drawCircle(faceCenter, faceRadius, facePaint);
+
+    // 머리카락 (뒤쪽 볼륨 + 앞머리).
+    final hairPaint = Paint()..color = _hair;
+    canvas.drawArc(
+      Rect.fromCircle(center: faceCenter, radius: faceRadius * 1.08),
+      math.pi,
+      math.pi,
+      true,
+      hairPaint,
+    );
+    final bangs = Path()
+      ..moveTo(faceCenter.dx - faceRadius, faceCenter.dy - faceRadius * 0.15)
+      ..quadraticBezierTo(
+        faceCenter.dx - faceRadius * 0.3,
+        faceCenter.dy - faceRadius * 0.95,
+        faceCenter.dx,
+        faceCenter.dy - faceRadius * 0.75,
+      )
+      ..quadraticBezierTo(
+        faceCenter.dx + faceRadius * 0.4,
+        faceCenter.dy - faceRadius * 1.0,
+        faceCenter.dx + faceRadius,
+        faceCenter.dy - faceRadius * 0.15,
+      )
+      ..lineTo(faceCenter.dx + faceRadius, faceCenter.dy - faceRadius * 0.5)
+      ..quadraticBezierTo(
+        faceCenter.dx,
+        faceCenter.dy - faceRadius * 1.25,
+        faceCenter.dx - faceRadius,
+        faceCenter.dy - faceRadius * 0.5,
+      )
+      ..close();
+    canvas.drawPath(bangs, hairPaint);
+
+    // 볼 홍조.
+    final blushPaint = Paint()
+      ..color = const Color(0xFFFF8A80).withValues(alpha: 0.45);
+    canvas.drawCircle(
+        Offset(faceCenter.dx - faceRadius * 0.55, faceCenter.dy + faceRadius * 0.15),
+        faceRadius * 0.16,
+        blushPaint);
+    canvas.drawCircle(
+        Offset(faceCenter.dx + faceRadius * 0.55, faceCenter.dy + faceRadius * 0.15),
+        faceRadius * 0.16,
+        blushPaint);
+
+    // 눈 (깜빡임 지원).
+    final eyePaint = Paint()..color = const Color(0xFF3E2A1A);
+    final eyeY = faceCenter.dy - faceRadius * 0.05;
+    final eyeDx = faceRadius * 0.38;
+    if (blink) {
+      final blinkPaint = Paint()
+        ..color = const Color(0xFF3E2A1A)
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(faceCenter.dx - eyeDx - 5, eyeY),
+          Offset(faceCenter.dx - eyeDx + 5, eyeY), blinkPaint);
+      canvas.drawLine(Offset(faceCenter.dx + eyeDx - 5, eyeY),
+          Offset(faceCenter.dx + eyeDx + 5, eyeY), blinkPaint);
+    } else {
+      canvas.drawCircle(
+          Offset(faceCenter.dx - eyeDx, eyeY), faceRadius * 0.11, eyePaint);
+      canvas.drawCircle(
+          Offset(faceCenter.dx + eyeDx, eyeY), faceRadius * 0.11, eyePaint);
+      final highlight = Paint()..color = Colors.white;
+      canvas.drawCircle(
+          Offset(faceCenter.dx - eyeDx + 2, eyeY - 2), faceRadius * 0.04,
+          highlight);
+      canvas.drawCircle(
+          Offset(faceCenter.dx + eyeDx + 2, eyeY - 2), faceRadius * 0.04,
+          highlight);
+    }
+
+    // 웃는 입.
+    final mouthPaint = Paint()
+      ..color = const Color(0xFF8A4B32)
+      ..strokeWidth = 2.6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final mouthPath = Path()
+      ..moveTo(faceCenter.dx - faceRadius * 0.22, faceCenter.dy + faceRadius * 0.38)
+      ..quadraticBezierTo(
+        faceCenter.dx,
+        faceCenter.dy + faceRadius * 0.58,
+        faceCenter.dx + faceRadius * 0.22,
+        faceCenter.dy + faceRadius * 0.38,
+      );
+    canvas.drawPath(mouthPath, mouthPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PersonPainter oldDelegate) =>
+      oldDelegate.blink != blink;
+}
+
+/// 고양이 캐릭터. 달릴 때는 다리가 교차로 움직이고 꼬리가 살랑거리며,
+/// 도착한 뒤에는(눈이 동그래지고) 반가운 표정을 짓는다.
+class _CatPainter extends CustomPainter {
+  _CatPainter({
+    required this.legPhase,
+    required this.running,
+    required this.tailPhase,
+    required this.excited,
+  });
+
+  final double legPhase;
+  final bool running;
+  final double tailPhase;
+  final bool excited;
+
+  static const _fur = Color(0xFFFFB84D);
+  static const _furShade = Color(0xFFF28C28);
+  static const _cream = Color(0xFFFFF3E0);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // 고양이는 왼쪽(집사 방향)을 바라본다. 머리는 왼쪽 30% 지점.
+    final bodyRect = Rect.fromLTWH(w * 0.18, h * 0.28, w * 0.62, h * 0.46);
+
+    // --- 꼬리 (뒤쪽, 몸통보다 먼저 그려서 몸에 가려지게) ---
+    final tailAngle = math.sin(tailPhase) * 0.6;
+    final tailBase = Offset(w * 0.78, h * 0.42);
+    final tailPaint = Paint()
+      ..color = _fur
+      ..strokeWidth = w * 0.11
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final tailEnd = Offset(
+      tailBase.dx + math.cos(-0.9 + tailAngle) * w * 0.34,
+      tailBase.dy - math.sin(1.2 + tailAngle) * h * 0.55,
+    );
+    final tailControl = Offset(tailBase.dx + w * 0.18, tailBase.dy - h * 0.25);
+    final tailPath = Path()
+      ..moveTo(tailBase.dx, tailBase.dy)
+      ..quadraticBezierTo(
+          tailControl.dx, tailControl.dy, tailEnd.dx, tailEnd.dy);
+    canvas.drawPath(tailPath, tailPaint);
+
+    // --- 다리 (달릴 때 교차, 도착 후엔 짧게 모음) ---
+    final legPaint = Paint()..color = _furShade;
+    final legW = w * 0.09;
+    final legH = h * 0.26;
+    final frontLegX = w * 0.30;
+    final backLegX = w * 0.58;
+    final legSwing = running ? math.sin(legPhase) * (w * 0.07) : 0.0;
+    final legSwing2 = running ? math.sin(legPhase + math.pi) * (w * 0.07) : 0.0;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(frontLegX + legSwing, h * 0.62, legW, legH),
+          const Radius.circular(5)),
+      legPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(backLegX + legSwing2, h * 0.62, legW, legH),
+          const Radius.circular(5)),
+      legPaint,
+    );
+
+    // --- 몸통 ---
+    final bodyPaint = Paint()..color = _fur;
+    canvas.drawOval(bodyRect, bodyPaint);
+    // 배(크림색) 패치.
+    final bellyPaint = Paint()..color = _cream;
+    canvas.drawOval(
+      Rect.fromLTWH(bodyRect.left + bodyRect.width * 0.18,
+          bodyRect.top + bodyRect.height * 0.42, bodyRect.width * 0.55,
+          bodyRect.height * 0.5),
+      bellyPaint,
+    );
+
+    // --- 머리 ---
+    final headCenter = Offset(w * 0.22, h * 0.26);
+    final headR = w * 0.22;
+    final headPaint = Paint()..color = _fur;
+    canvas.drawCircle(headCenter, headR, headPaint);
+
+    // 귀 (쫑긋, 달릴 때 살짝 뒤로 눕고 도착 시 쫑긋 세움).
+    final earTilt = running ? 0.35 : 0.1;
+    _drawEar(canvas, headCenter, headR, -1, earTilt);
+    _drawEar(canvas, headCenter, headR, 1, earTilt);
+
+    // 주둥이(흰 부분).
+    final muzzlePaint = Paint()..color = _cream;
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(headCenter.dx - headR * 0.35, headCenter.dy + headR * 0.25),
+          width: headR * 0.95,
+          height: headR * 0.65),
+      muzzlePaint,
+    );
+
+    // 코.
+    final nosePaint = Paint()..color = const Color(0xFFE91E63);
+    final nosePath = Path()
+      ..moveTo(headCenter.dx - headR * 0.62, headCenter.dy + headR * 0.08)
+      ..lineTo(headCenter.dx - headR * 0.48, headCenter.dy + headR * 0.08)
+      ..lineTo(headCenter.dx - headR * 0.55, headCenter.dy + headR * 0.20)
+      ..close();
+    canvas.drawPath(nosePath, nosePaint);
+
+    // 눈 (달릴 땐 기분 좋게 감은 호, 도착하면 반짝이는 동그란 눈).
+    final eyeY = headCenter.dy - headR * 0.05;
+    if (excited) {
+      final eyePaint = Paint()..color = const Color(0xFF2D1B0E);
+      canvas.drawCircle(
+          Offset(headCenter.dx - headR * 0.58, eyeY), headR * 0.16, eyePaint);
+      canvas.drawCircle(
+          Offset(headCenter.dx - headR * 0.08, eyeY - headR * 0.1),
+          headR * 0.16, eyePaint);
+      final sparkle = Paint()..color = Colors.white;
+      canvas.drawCircle(
+          Offset(headCenter.dx - headR * 0.58 + 1.5, eyeY - 1.5),
+          headR * 0.05, sparkle);
+      canvas.drawCircle(
+          Offset(headCenter.dx - headR * 0.08 + 1.5, eyeY - headR * 0.1 - 1.5),
+          headR * 0.05, sparkle);
+    } else {
+      final happyPaint = Paint()
+        ..color = const Color(0xFF2D1B0E)
+        ..strokeWidth = 2.2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(
+          Rect.fromCenter(
+              center: Offset(headCenter.dx - headR * 0.58, eyeY),
+              width: headR * 0.3,
+              height: headR * 0.3),
+          0.15,
+          2.8,
+          false,
+          happyPaint);
+      canvas.drawArc(
+          Rect.fromCenter(
+              center: Offset(headCenter.dx - headR * 0.08, eyeY - headR * 0.1),
+              width: headR * 0.3,
+              height: headR * 0.3),
+          0.15,
+          2.8,
+          false,
+          happyPaint);
+    }
+
+    // 수염.
+    final whiskerPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    for (final dy in [-0.06, 0.0, 0.06]) {
+      canvas.drawLine(
+        Offset(headCenter.dx - headR * 0.75, headCenter.dy + headR * (0.15 + dy)),
+        Offset(headCenter.dx - headR * 1.25, headCenter.dy + headR * (0.05 + dy * 1.6)),
+        whiskerPaint,
+      );
+    }
+  }
+
+  void _drawEar(Canvas canvas, Offset headCenter, double headR, int side, double tilt) {
+    final outerPaint = Paint()..color = _fur;
+    final innerPaint = Paint()..color = const Color(0xFFFFCBA4);
+    final baseX = headCenter.dx + side * headR * 0.45;
+    final baseY = headCenter.dy - headR * 0.75;
+    final tipX = baseX + side * headR * 0.25 - tilt * headR * side;
+    final tipY = baseY - headR * 0.55;
+    final outer = Path()
+      ..moveTo(baseX - headR * 0.22, baseY + headR * 0.15)
+      ..lineTo(tipX, tipY)
+      ..lineTo(baseX + headR * 0.22, baseY + headR * 0.15)
+      ..close();
+    canvas.drawPath(outer, outerPaint);
+    final inner = Path()
+      ..moveTo(baseX - headR * 0.10, baseY + headR * 0.08)
+      ..lineTo(tipX - side * headR * 0.03, tipY + headR * 0.12)
+      ..lineTo(baseX + headR * 0.10, baseY + headR * 0.08)
+      ..close();
+    canvas.drawPath(inner, innerPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CatPainter oldDelegate) => true;
+}
