@@ -186,7 +186,7 @@ class _IntroScreenState extends State<IntroScreen>
 
                 // "냥냥이톡" 타이틀.
                 Align(
-                  alignment: const Alignment(0, 0.72),
+                  alignment: const Alignment(0, 0.32),
                   child: Opacity(
                     opacity: titleOpacity,
                     child: Transform.scale(
