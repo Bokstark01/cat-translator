@@ -155,11 +155,11 @@ class _ChatHomePageState extends State<ChatHomePage> {
 
   final List<ChatEntry> _messages = [];
 
-  // 화면 하단 배너 광고 (테스트 광고 ID 사용).
+  // 화면 하단 배너 광고 (실 서비스용 광고 단위 ID 사용).
   BannerAd? _bannerAd;
   bool _isBannerReady = false;
-  static const String _testBannerAdUnitId =
-      'ca-app-pub-3940256099942544/6300978111';
+  static const String _bannerAdUnitId =
+      'ca-app-pub-9409942745407951/7438075619';
 
   @override
   void initState() {
@@ -189,7 +189,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: _testBannerAdUnitId,
+      adUnitId: _bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
