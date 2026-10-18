@@ -159,7 +159,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
   BannerAd? _bannerAd;
   bool _isBannerReady = false;
   static const String _bannerAdUnitId =
-      'ca-app-pub-9409942745407951/7438075619';
+      'ca-app-pub-9409942745407951/5953812982';
 
   @override
   void initState() {
