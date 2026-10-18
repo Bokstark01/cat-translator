@@ -1,7 +1,7 @@
 name: cat_translator
 description: "고양이 소리를 듣고 상황을 번역해서 알려주는 앱"
 publish_to: "none"
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
