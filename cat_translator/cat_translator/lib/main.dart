@@ -131,7 +131,8 @@ class ChatHomePage extends StatefulWidget {
   State<ChatHomePage> createState() => _ChatHomePageState();
 }
 
-class _ChatHomePageState extends State<ChatHomePage> {
+class _ChatHomePageState extends State<ChatHomePage>
+    with WidgetsBindingObserver {
   final _recorder = AudioRecorder();
   final _classifier = AudioClassifier();
   final _tts = FlutterTts();
@@ -145,6 +146,12 @@ class _ChatHomePageState extends State<ChatHomePage> {
   static const int _sampleRate = 16000;
 
   bool _isListening = false;
+  // 앱이 백그라운드로 가면서 듣기를 멈췄는지. 화면으로 돌아오면 다시 켠다.
+  // (안드로이드 9+는 백그라운드 앱의 마이크 입력을 무음으로 막기 때문에,
+  // 멈추지 않으면 "듣고 있어요"만 뜬 채 실제로는 아무것도 못 듣는다.)
+  bool _resumeListeningOnForeground = false;
+  // 생명주기 이벤트가 빠르게 연달아 올 때 멈춤/재시작이 겹치지 않도록 순서대로 처리한다.
+  Future<void> _lifecycleTask = Future.value();
   bool _modelReady = false;
   String _headerStatus = '준비 중...';
   DateTime? _lastSpokenAt;
@@ -164,6 +171,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _messages.add(
       ChatEntry.system('${withSubjectParticle(widget.catName)} 채팅방에 들어왔어요 🐾'),
     );
@@ -229,7 +237,8 @@ class _ChatHomePageState extends State<ChatHomePage> {
     }
   }
 
-  Future<void> _startListening() async {
+  Future<void> _startListening(
+      {String startMessage = '듣기 시작! 소리를 기다리고 있어요 👂'}) async {
     if (!_modelReady) return;
 
     final micStatus = await Permission.microphone.request();
@@ -258,10 +267,10 @@ class _ChatHomePageState extends State<ChatHomePage> {
       _isListening = true;
       _headerStatus = '듣고 있어요...';
     });
-    _addSystemMessage('듣기 시작! 소리를 기다리고 있어요 👂');
+    _addSystemMessage(startMessage);
   }
 
-  Future<void> _stopListening() async {
+  Future<void> _stopListening({String stopMessage = '듣기를 멈췄어요'}) async {
     await _micSub?.cancel();
     _micSub = null;
     await _recorder.stop();
@@ -269,7 +278,32 @@ class _ChatHomePageState extends State<ChatHomePage> {
       _isListening = false;
       _headerStatus = '대기 중';
     });
-    _addSystemMessage('듣기를 멈췄어요');
+    _addSystemMessage(stopMessage);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        _lifecycleTask = _lifecycleTask.then((_) async {
+          if (!mounted || !_isListening) return;
+          _resumeListeningOnForeground = true;
+          await _stopListening(stopMessage: '앱이 화면에서 벗어나서 듣기를 잠시 멈췄어요');
+        });
+        break;
+      case AppLifecycleState.resumed:
+        _lifecycleTask = _lifecycleTask.then((_) async {
+          if (!mounted || !_resumeListeningOnForeground) return;
+          _resumeListeningOnForeground = false;
+          if (_isListening) return;
+          await _startListening(startMessage: '다시 듣고 있어요 👂');
+        });
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   void _onAudioChunk(Uint8List bytes) {
@@ -476,6 +510,7 @@ class _ChatHomePageState extends State<ChatHomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _micSub?.cancel();
     _recorder.dispose();
     _classifier.close();
