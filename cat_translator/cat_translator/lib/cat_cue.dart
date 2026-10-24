@@ -41,7 +41,7 @@ const Map<CatCue, CatCueInfo> kCatCueInfo = {
   CatCue.feedingCue: CatCueInfo(
     '밥 시간',
     '🍖',
-    '밝고 또렷한 벨소리예요. 밥 줄 때마다 반복해서 들려주면 "이 소리 = 밥"으로 학습시킬 수 있어요.',
+    '밝고 또렷한 벨소리예요. 밥 줄 때마다 반복해서 들려주면 밥 시간을 알리는 데 도움이 될 수 있어요.',
     'sounds/feeding_cue.wav',
   ),
   CatCue.warning: CatCueInfo(

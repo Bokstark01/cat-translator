@@ -9,6 +9,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
+import 'app_theme.dart';
 import 'audio_classifier.dart';
 import 'cat_cue.dart';
 import 'cat_situation.dart';
@@ -57,10 +58,7 @@ class CatTranslatorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '냥냥이톡',
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFFFF9933),
-        useMaterial3: true,
-      ),
+      theme: buildNyangTheme(),
       home: const IntroScreen(),
     );
   }
@@ -440,12 +438,14 @@ class _ChatHomePageState extends State<ChatHomePage>
                 Text(
                   '${withTopicParticle(widget.catName)} 지금 어떤 상태인가요?',
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: NyangColors.ink),
                 ),
                 const SizedBox(height: 4),
                 const Text(
                   '목록에 없는 상황이면 가장 가까운 걸로 골라주세요.',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(fontSize: 12, color: NyangColors.muted),
                 ),
                 const SizedBox(height: 8),
                 ConstrainedBox(
@@ -554,13 +554,17 @@ class _ChatHomePageState extends State<ChatHomePage>
                 children: [
                   const Text(
                     '어떤 소리를 들려줄까요?',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: NyangColors.ink),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   const Text(
                     '실제 고양이 언어로 "번역"하는 기능은 아니에요. 주의를 끌거나\n'
                     '편안하게 해주는 데 도움이 될 수 있다고 알려진 소리예요 🐾',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                        fontSize: 12, height: 1.5, color: NyangColors.muted),
                   ),
                   const SizedBox(height: 14),
                   Wrap(
@@ -586,15 +590,22 @@ class _ChatHomePageState extends State<ChatHomePage>
   Widget _cueTile(BuildContext ctx, CatCue cue) {
     final info = kCatCueInfo[cue]!;
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       onTap: () => Navigator.of(ctx).pop(cue),
       child: Container(
         width: 150,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF3E0),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFFD9A0)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: NyangColors.lavenderLine),
+          boxShadow: [
+            BoxShadow(
+              color: NyangColors.shadow.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,12 +613,15 @@ class _ChatHomePageState extends State<ChatHomePage>
             Text(info.emoji, style: const TextStyle(fontSize: 22)),
             const SizedBox(height: 6),
             Text(info.label,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: NyangColors.ink)),
             const SizedBox(height: 4),
             Text(
               info.description,
-              style: const TextStyle(fontSize: 11, color: Colors.black54),
+              style: const TextStyle(
+                  fontSize: 11, height: 1.45, color: NyangColors.muted),
             ),
           ],
         ),
@@ -618,9 +632,11 @@ class _ChatHomePageState extends State<ChatHomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9E3D8),
+      backgroundColor: NyangColors.chatBottom,
       appBar: _buildChatAppBar(context),
-      body: SafeArea(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: NyangGradients.chatBackground),
+        child: SafeArea(
         child: Column(
           children: [
             Expanded(
@@ -635,6 +651,7 @@ class _ChatHomePageState extends State<ChatHomePage>
             _buildInputBar(),
             _buildBannerAd(),
           ],
+        ),
         ),
       ),
     );
@@ -658,25 +675,44 @@ class _ChatHomePageState extends State<ChatHomePage>
 
   PreferredSizeWidget _buildChatAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFFFFB84D),
-      elevation: 1,
-      titleSpacing: 8,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 64,
+      titleSpacing: 14,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: NyangGradients.header,
+          boxShadow: [
+            BoxShadow(
+              color: NyangColors.shadow.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+      ),
       title: Row(
         children: [
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.white,
-            child: Text('🐱', style: TextStyle(fontSize: 20)),
-          ),
-          const SizedBox(width: 10),
+          const MascotAvatar(radius: 21),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 인트로와 같은 동글체 (서브셋 글꼴에 '냥이톡' 포함)
               const Text('냥냥이톡',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      fontFamily: 'DongleIntro',
+                      fontSize: 34,
+                      height: 0.9,
+                      color: Colors.white)),
               Text(_headerStatus,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.88))),
             ],
           ),
         ],
@@ -684,9 +720,11 @@ class _ChatHomePageState extends State<ChatHomePage>
       actions: [
         IconButton(
           tooltip: '채팅방 나가기',
-          icon: const Icon(Icons.exit_to_app),
+          icon: Icon(Icons.logout_rounded,
+              color: Colors.white.withValues(alpha: 0.9)),
           onPressed: _confirmExit,
         ),
+        const SizedBox(width: 4),
       ],
     );
   }
@@ -697,15 +735,15 @@ class _ChatHomePageState extends State<ChatHomePage>
     if (entry.isSystem) {
       return Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(14),
+            color: Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             entry.systemText ?? '',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(color: NyangColors.inkSoft, fontSize: 12),
           ),
         ),
       );
@@ -720,12 +758,13 @@ class _ChatHomePageState extends State<ChatHomePage>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.white,
-            child: Text(entry.isHumanMimicry ? '🧑' : info.emoji,
-                style: const TextStyle(fontSize: 18)),
-          ),
+          entry.isHumanMimicry
+              ? const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: Text('🧑', style: TextStyle(fontSize: 18)),
+                )
+              : const MascotAvatar(radius: 18),
           const SizedBox(width: 8),
           Flexible(
             child: Column(
@@ -739,7 +778,8 @@ class _ChatHomePageState extends State<ChatHomePage>
                         : entry.correctedSituation != null
                             ? '${info.koreanLabel} (고쳐주신 답변)'
                             : info.koreanLabel,
-                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    style: const TextStyle(
+                        fontSize: 11, color: NyangColors.muted),
                   ),
                 ),
                 Row(
@@ -753,16 +793,16 @@ class _ChatHomePageState extends State<ChatHomePage>
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(16),
-                            bottomLeft: Radius.circular(16),
-                            bottomRight: Radius.circular(16),
+                            topLeft: Radius.circular(6),
+                            topRight: Radius.circular(20),
+                            bottomLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
+                              color: NyangColors.shadow.withValues(alpha: 0.12),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
@@ -770,14 +810,17 @@ class _ChatHomePageState extends State<ChatHomePage>
                           entry.isHumanMimicry
                               ? '🧑 어? 사람 목소리였네요! 더 똑똑해질게요냥'
                               : '${info.emoji} ${info.spokenPhrase}',
-                          style: const TextStyle(fontSize: 15, height: 1.3),
+                          style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.35,
+                              color: NyangColors.ink),
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(timeLabel,
                         style:
-                            const TextStyle(fontSize: 10, color: Colors.black45)),
+                            const TextStyle(fontSize: 10, color: NyangColors.muted)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -801,20 +844,27 @@ class _ChatHomePageState extends State<ChatHomePage>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(timeLabel,
-              style: const TextStyle(fontSize: 10, color: Colors.black45)),
+              style: const TextStyle(fontSize: 10, color: NyangColors.muted)),
           const SizedBox(width: 6),
           Flexible(
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFB84D),
+                gradient: NyangGradients.lavenderButton,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(4),
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(6),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: NyangColors.lavender.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Text(
                 '${info.emoji} "${info.label}" 소리를 들려줬어요',
@@ -822,12 +872,6 @@ class _ChatHomePageState extends State<ChatHomePage>
                     fontSize: 15, height: 1.3, color: Colors.white),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.white,
-            child: Text('🙂', style: TextStyle(fontSize: 18)),
           ),
         ],
       ),
@@ -844,13 +888,13 @@ class _ChatHomePageState extends State<ChatHomePage>
           children: [
             _feedbackChip(
               label: '👍 맞아요',
-              color: const Color(0xFFDFF5E3),
+              color: NyangColors.lavenderTint,
               onTap: () => _giveFeedback(entry, true),
             ),
             const SizedBox(width: 6),
             _feedbackChip(
               label: '👎 아니에요',
-              color: const Color(0xFFFCE1E1),
+              color: NyangColors.lavenderTint,
               onTap: () => _giveFeedback(entry, false),
             ),
           ],
@@ -864,7 +908,7 @@ class _ChatHomePageState extends State<ChatHomePage>
         padding: EdgeInsets.only(left: 4),
         child: Text(
           '맞다고 알려주셨어요 💛',
-          style: TextStyle(fontSize: 11, color: Colors.black45),
+          style: TextStyle(fontSize: 11, color: NyangColors.muted),
         ),
       );
     }
@@ -879,7 +923,7 @@ class _ChatHomePageState extends State<ChatHomePage>
           children: [
             Text(
               '${withTopicParticle(widget.catName)} 지금 어떤 상태인가요?',
-              style: const TextStyle(fontSize: 11, color: Colors.black54),
+              style: const TextStyle(fontSize: 11, color: NyangColors.muted),
             ),
             const SizedBox(height: 4),
             Wrap(
@@ -890,17 +934,17 @@ class _ChatHomePageState extends State<ChatHomePage>
                   _feedbackChip(
                     label:
                         '${kSituationInfo[alt]!.emoji} ${kSituationInfo[alt]!.koreanLabel}',
-                    color: const Color(0xFFFFE9CC),
+                    color: NyangColors.lavenderTint,
                     onTap: () => _applyCorrection(entry, alt),
                   ),
                 _feedbackChip(
                   label: '🔍 기타 (직접 선택)',
-                  color: const Color(0xFFE0E0E0),
+                  color: Colors.white,
                   onTap: () => _showFullSituationPicker(entry),
                 ),
                 _feedbackChip(
                   label: '🧑 사람이 흉내낸 소리예요',
-                  color: const Color(0xFFD9E8FF),
+                  color: Colors.white,
                   onTap: () => _markAsHumanMimicry(entry),
                 ),
               ],
@@ -916,7 +960,7 @@ class _ChatHomePageState extends State<ChatHomePage>
         padding: EdgeInsets.only(left: 4),
         child: Text(
           '사람 목소리였다고 알려주셨어요, 더 잘 구별해볼게요 🧑',
-          style: TextStyle(fontSize: 11, color: Colors.black45),
+          style: TextStyle(fontSize: 11, color: NyangColors.muted),
         ),
       );
     }
@@ -926,7 +970,7 @@ class _ChatHomePageState extends State<ChatHomePage>
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         '${kSituationInfo[entry.correctedSituation]!.koreanLabel}(으)로 알려주셨어요, 더 배울게요냥',
-        style: const TextStyle(fontSize: 11, color: Colors.black45),
+        style: const TextStyle(fontSize: 11, color: NyangColors.muted),
       ),
     );
   }
@@ -936,15 +980,20 @@ class _ChatHomePageState extends State<ChatHomePage>
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: NyangColors.lavenderLine),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 12)),
+        child: Text(label,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: NyangColors.accentText)),
       ),
     );
   }
@@ -952,9 +1001,10 @@ class _ChatHomePageState extends State<ChatHomePage>
   Widget _buildInputBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        border: const Border(
+            top: BorderSide(color: NyangColors.lavenderLine, width: 0.6)),
       ),
       child: SafeArea(
         top: false,
@@ -963,14 +1013,14 @@ class _ChatHomePageState extends State<ChatHomePage>
           children: [
             Expanded(
               child: InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 onTap: _isListening ? null : _showCatCuePicker,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(20),
+                    color: NyangColors.lavenderTint,
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: Row(
                     children: [
@@ -982,13 +1032,13 @@ class _ChatHomePageState extends State<ChatHomePage>
                                   ? '눌러서 고양이에게 소리 들려주기'
                                   : '모델 준비 중...'),
                           style: const TextStyle(
-                              color: Colors.black54, fontSize: 13),
+                              color: NyangColors.muted, fontSize: 14),
                         ),
                       ),
                       if (!_isListening) ...[
                         const SizedBox(width: 6),
                         const Icon(Icons.campaign_outlined,
-                            size: 18, color: Colors.black38),
+                            size: 20, color: NyangColors.lavenderSoft),
                       ],
                     ],
                   ),
@@ -998,13 +1048,29 @@ class _ChatHomePageState extends State<ChatHomePage>
             const SizedBox(width: 10),
             GestureDetector(
               onTap: _modelReady ? _toggleListening : null,
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor:
-                    _isListening ? Colors.redAccent : const Color(0xFFFFB84D),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack,
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: _isListening
+                      ? NyangGradients.listening
+                      : NyangGradients.lavenderButton,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_isListening ? NyangColors.rose : NyangColors.lavender)
+                          .withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
                 child: Icon(
-                  _isListening ? Icons.stop : Icons.mic,
+                  _isListening ? Icons.stop_rounded : Icons.mic_rounded,
                   color: Colors.white,
+                  size: 26,
                 ),
               ),
             ),
