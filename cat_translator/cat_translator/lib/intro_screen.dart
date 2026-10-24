@@ -46,7 +46,12 @@ class _IntroScreenState extends State<IntroScreen>
   // 아이콘 말풍선과 같은 연보라 (#BEB0F0) 기준, 위아래로 아주 옅은 그라데이션.
   static const _bgTop = Color(0xFFC4B7F2);
   static const _bgBottom = Color(0xFFB6A6EC);
-  static const _ink = Color(0xFF3D3373);
+  // 글자 그라데이션 (살구 → 로즈)
+  static const _textGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFF8C5F), Color(0xFFD6448C)],
+  );
 
   late final AnimationController _controller;
   late final Animation<double> _catIn;
@@ -125,7 +130,7 @@ class _IntroScreenState extends State<IntroScreen>
     final catH = catSize * 1.1; // 그림 비율(약 0.91:1)에 맞춘 높이
     final boxW = catSize * 1.2;
     final bubbleZone = catSize * 0.32; // 고양이 머리 위 말풍선 자리
-    final titleZone = catSize * 0.30; // 고양이 아래 타이틀 자리
+    final titleZone = catSize * 0.38; // 고양이 아래 타이틀 자리
     final boxH = bubbleZone + catH + catSize * 0.06 + titleZone;
 
     return Scaffold(
@@ -239,8 +244,8 @@ class _IntroScreenState extends State<IntroScreen>
                               scale: 0.5 + 0.5 * bubbleIn,
                               alignment: Alignment.bottomLeft,
                               child: const _SpeechBubble(
-                                text: '냥!',
-                                color: _ink,
+                                text: '안냥!',
+                                gradient: _textGradient,
                               ),
                             ),
                           ),
@@ -250,20 +255,14 @@ class _IntroScreenState extends State<IntroScreen>
                       Positioned(
                         left: 0,
                         right: 0,
-                        bottom: titleZone * 0.18,
+                        bottom: 0,
                         child: Opacity(
                           opacity: titleOpacity,
                           child: Transform.translate(
                             offset: Offset(0, 16 * (1 - titleIn)),
-                            child: const Text(
-                              '냥냥이톡',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 38,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.8,
-                                color: _ink,
-                              ),
+                            child: const _GradientTitle(
+                              text: '냥냥이톡',
+                              gradient: _textGradient,
                             ),
                           ),
                         ),
@@ -282,27 +281,83 @@ class _IntroScreenState extends State<IntroScreen>
 
 /// 꼬리가 왼쪽 아래(고양이 쪽)를 향하는 흰 말풍선.
 class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.text, required this.color});
+  const _SpeechBubble({required this.text, required this.gradient});
 
   final String text;
-  final Color color;
+  final Gradient gradient;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: const _BubblePainter(),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-            color: color,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
+        child: ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => gradient.createShader(bounds),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontFamily: 'DongleIntro',
+              fontSize: 46,
+              height: 1.0,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 흰 테두리 + 옅은 보라 그림자 위에 그라데이션 글자를 얹은 스티커풍 타이틀.
+class _GradientTitle extends StatelessWidget {
+  const _GradientTitle({required this.text, required this.gradient});
+
+  final String text;
+  final Gradient gradient;
+
+  static const _style = TextStyle(
+    fontFamily: 'DongleIntro',
+    fontSize: 64,
+    height: 1.0,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 흰 테두리 (그림자 포함)
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: _style.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 7
+              ..strokeJoin = StrokeJoin.round
+              ..color = Colors.white,
+            shadows: const [
+              Shadow(
+                color: Color(0x404A3D96),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+        ),
+        // 그라데이션 글자
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => gradient.createShader(bounds),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: _style.copyWith(color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -43,3 +43,10 @@ flutter:
     - assets/models/
     - assets/sounds/
     - assets/images/
+
+  # 인트로 말풍선·타이틀용 둥근 글꼴 (동글체 Bold, SIL OFL 1.1).
+  # 용량을 줄이려고 인트로에 쓰는 글자(안냥!이톡)만 남긴 서브셋. 라이선스: assets/fonts/Dongle-OFL.txt
+  fonts:
+    - family: DongleIntro
+      fonts:
+        - asset: assets/fonts/Dongle-Bold-intro.ttf
