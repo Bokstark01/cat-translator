@@ -23,6 +23,15 @@ void main() {
   runApp(const CatTranslatorApp());
 }
 
+/// 한국어 문장이 단어 중간("써보세/요")에서 줄바꿈되지 않도록,
+/// 각 단어 글자 사이에 보이지 않는 연결 문자(U+2060)를 넣어 띄어쓰기에서만 끊기게 한다.
+String keepWords(String text) {
+  return text
+      .split(' ')
+      .map((w) => w.characters.join('\u2060'))
+      .join(' ');
+}
+
 /// 한국어 주격 조사 "이/가"를 이름의 받침 유무에 따라 올바르게 붙여준다.
 /// 예: "나비" -> "나비가", "구름이" -> "구름이가".
 String withSubjectParticle(String name) {
@@ -567,13 +576,19 @@ class _ChatHomePageState extends State<ChatHomePage>
                         fontSize: 12, height: 1.5, color: NyangColors.muted),
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (final cue in CatCue.values)
-                        _cueTile(ctx, cue),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      // 두 칸이 시트 폭을 정확히 반씩 채우도록.
+                      final tileW = (c.maxWidth - 12) / 2;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final cue in CatCue.values)
+                            _cueTile(ctx, cue, tileW),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -587,13 +602,13 @@ class _ChatHomePageState extends State<ChatHomePage>
     }
   }
 
-  Widget _cueTile(BuildContext ctx, CatCue cue) {
+  Widget _cueTile(BuildContext ctx, CatCue cue, double width) {
     final info = kCatCueInfo[cue]!;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () => Navigator.of(ctx).pop(cue),
       child: Container(
-        width: 150,
+        width: width,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -619,7 +634,7 @@ class _ChatHomePageState extends State<ChatHomePage>
                     color: NyangColors.ink)),
             const SizedBox(height: 4),
             Text(
-              info.description,
+              keepWords(info.description),
               style: const TextStyle(
                   fontSize: 11, height: 1.45, color: NyangColors.muted),
             ),
@@ -640,18 +655,56 @@ class _ChatHomePageState extends State<ChatHomePage>
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) => _buildEntry(_messages[index]),
+              child: Stack(
+                children: [
+                  // 아직 고양이 결과가 없을 때 보여주는 안내 (휑한 빈 화면 방지)
+                  if (_messages.every((m) => m.isSystem))
+                    Positioned.fill(child: _buildEmptyGuide()),
+                  ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) =>
+                        _buildEntry(_messages[index]),
+                  ),
+                ],
               ),
             ),
             _buildInputBar(),
             _buildBannerAd(),
           ],
         ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyGuide() {
+    return IgnorePointer(
+      child: Align(
+        alignment: const Alignment(0, 0.25),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Opacity(
+              opacity: 0.9,
+              child: Image.asset(
+                'assets/images/cat_mascot.png',
+                height: 120,
+                filterQuality: FilterQuality.medium,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              _isListening
+                  ? keepWords('${withTopicParticle(widget.catName)} 소리를 기다리는 중이에요')
+                  : keepWords('아래 마이크를 누르면 ${widget.catName}의 소리를 듣고\n어떤 상황인지 짐작해 드려요'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 13, height: 1.6, color: NyangColors.muted),
+            ),
+          ],
         ),
       ),
     );
@@ -1000,12 +1053,9 @@ class _ChatHomePageState extends State<ChatHomePage>
 
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        border: const Border(
-            top: BorderSide(color: NyangColors.lavenderLine, width: 0.6)),
-      ),
+      // 흰 띠 없이 바탕 그라데이션이 이어지게 투명하게, 아래쪽은 마이크 그림자가
+      // 광고에 잘리지 않도록 여유를 둔다.
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
       child: SafeArea(
         top: false,
         bottom: false,
@@ -1019,8 +1069,16 @@ class _ChatHomePageState extends State<ChatHomePage>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                   decoration: BoxDecoration(
-                    color: NyangColors.lavenderTint,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: NyangColors.lavenderLine),
+                    boxShadow: [
+                      BoxShadow(
+                        color: NyangColors.shadow.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
