@@ -1,16 +1,15 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
 import 'cat_name_screen.dart';
 
-/// 앱 시작 시 채팅 화면으로 넘어가기 전에 보여주는 인트로 애니메이션.
-/// 화면 중앙에 집사(사람)가 서 있고, 맞은편에서 고양이가 달려와
-/// 집사에게 말을 건 뒤 "냥냥이톡" 타이틀이 나타난다.
+/// 앱 시작 인트로 (약 2초, 화면을 탭하면 바로 건너뜀).
 ///
-/// 캐릭터는 디테일한 3D 렌더 스타일 일러스트(assets/images)를 사용하고,
-/// 위치/스케일/투명도 애니메이션으로 달리기·착지·숨쉬기 같은
-/// 자연스러운 움직임을 연출한다.
+/// 화면 중앙에 마스코트 고양이가 스프링처럼 통 하고 나타난 뒤
+/// 말하듯 고개를 까딱이며 몸을 살짝 늘였다 줄이고,
+/// 그 사이 흰 말풍선이 스프링 움직임으로 떠오른다.
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
 
@@ -18,61 +17,91 @@ class IntroScreen extends StatefulWidget {
   State<IntroScreen> createState() => _IntroScreenState();
 }
 
+/// 실제 스프링 물리(질량·강성·감쇠)로 움직이는 곡선.
+/// [Curves.elasticOut]보다 덜 출렁이고 자연스럽게 멈춘다.
+class _SpringCurve extends Curve {
+  const _SpringCurve({this.stiffness = 180, this.damping = 14});
+
+  final double stiffness;
+  final double damping;
+
+  @override
+  double transformInternal(double t) {
+    final sim = SpringSimulation(
+      SpringDescription(mass: 1, stiffness: stiffness, damping: damping),
+      0,
+      1,
+      0,
+    );
+    // 곡선 구간(0~1)을 스프링 시간 0.9초로 펼친다.
+    return sim.x(t * 0.9);
+  }
+}
+
 class _IntroScreenState extends State<IntroScreen>
     with SingleTickerProviderStateMixin {
+  static const _total = Duration(milliseconds: 2000);
+  static const _mascot = AssetImage('assets/images/cat_mascot.png');
+
+  // 아이콘 말풍선과 같은 연보라 (#BEB0F0) 기준, 위아래로 아주 옅은 그라데이션.
+  static const _bgTop = Color(0xFFC4B7F2);
+  static const _bgBottom = Color(0xFFB6A6EC);
+  static const _ink = Color(0xFF3D3373);
+
   late final AnimationController _controller;
-  late final Animation<double> _sceneIn;
-  late final Animation<double> _catRun;
-  late final Animation<double> _catLand;
+  late final Animation<double> _catIn;
   late final Animation<double> _bubbleIn;
   late final Animation<double> _titleIn;
+  bool _left = false;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(vsync: this, duration: _total);
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3400),
-    );
-
-    // 0.00~0.10: 배경/집사가 부드럽게 페이드인.
-    _sceneIn = CurvedAnimation(
+    // 0.00~0.40: 고양이가 살짝 작은 크기에서 스프링으로 통 하고 등장.
+    _catIn = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.10, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.40, curve: _SpringCurve()),
     );
-    // 0.08~0.60: 고양이가 화면 오른쪽에서 집사 쪽으로 달려온다.
-    _catRun = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.08, 0.60, curve: Curves.easeInOutCubic),
-    );
-    // 0.60~0.76: 도착한 고양이가 통통 튀며 착지(스쿼시&스트레치).
-    _catLand = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.60, 0.76, curve: Curves.easeOut),
-    );
-    // 0.74~0.90: 말풍선이 통통 튀듯 나타난다.
+    // 0.34~0.80: 말하는 도중 흰 말풍선이 스프링으로 떠오름.
     _bubbleIn = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.74, 0.90, curve: Curves.elasticOut),
-    );
-    // 0.88~1.0: "냥냥이톡" 타이틀 등장.
-    _titleIn = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.88, 1.0, curve: Curves.easeOutBack),
+      curve: const Interval(0.34, 0.80,
+          curve: _SpringCurve(stiffness: 220, damping: 15)),
     );
 
-    _controller.forward();
+    // 0.52~0.95: "냥냥이톡" 타이틀이 고양이 아래에서 살짝 떠오르며 나타남.
+    _titleIn = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.52, 0.95,
+          curve: _SpringCurve(stiffness: 160, damping: 16)),
+    );
+
     _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 750), () {
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CatNameScreen()),
-          );
-        });
-      }
+      if (status == AnimationStatus.completed) _goNext();
     });
+    _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 첫 프레임에 그림이 비어 보이지 않도록 미리 불러온다.
+    precacheImage(_mascot, context);
+  }
+
+  void _goNext() {
+    if (_left || !mounted) return;
+    _left = true;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (_, __, ___) => const CatNameScreen(),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    );
   }
 
   @override
@@ -81,246 +110,169 @@ class _IntroScreenState extends State<IntroScreen>
     super.dispose();
   }
 
+  /// 말하는 동작의 세기. 0.25~0.85 구간에서 서서히 커졌다가 잦아든다.
+  double _talkEnvelope(double t) {
+    if (t <= 0.25 || t >= 0.85) return 0;
+    final p = (t - 0.25) / 0.60;
+    return math.sin(p * math.pi);
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final groundY = size.height * 0.42;
+    // 고양이 크기는 화면 폭의 70% (태블릿에서도 너무 커지지 않게 최대 300).
+    final catSize = math.min(size.width * 0.70, 300.0);
+    final catH = catSize * 1.1; // 그림 비율(약 0.91:1)에 맞춘 높이
+    final boxW = catSize * 1.2;
+    final bubbleZone = catSize * 0.32; // 고양이 머리 위 말풍선 자리
+    final titleZone = catSize * 0.30; // 고양이 아래 타이틀 자리
+    final boxH = bubbleZone + catH + catSize * 0.06 + titleZone;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFE9CC),
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final t = _controller.value;
-          final sceneOpacity = _sceneIn.value.clamp(0.0, 1.0);
-
-          // --- 고양이 달리기 ---
-          final isRunning = t < 0.60;
-          final runProgress = _catRun.value.clamp(0.0, 1.0);
-          final startX = size.width + 90;
-          final endX = size.width * 0.56;
-          final catX = startX - (startX - endX) * runProgress;
-          final runBounce =
-              isRunning ? math.sin(runProgress * math.pi * 11).abs() * 7 : 0.0;
-
-          // --- 착지 스쿼시 & 스트레치 (한 번 눌렸다 퍼지는 펄스) ---
-          final landT = _catLand.value.clamp(0.0, 1.0);
-          final squash = isRunning ? 0.0 : math.sin(landT * math.pi);
-          final catScaleY = 1.0 - squash * 0.14;
-          final catScaleX = 1.0 + squash * 0.10;
-          // 달려오는 동안 살짝 앞으로 기운 느낌을 주는 미세 기울임.
-          final runTilt = isRunning ? 0.08 : 0.0;
-
-          // --- 말풍선 / 타이틀 ---
-          final bubbleOpacity = _bubbleIn.value.clamp(0.0, 1.0);
-          final titleOpacity = _titleIn.value.clamp(0.0, 1.0);
-
-          // --- 집사(사람) 숨쉬기 ---
-          final breathe = math.sin(t * math.pi * 2.4) * 3;
-          const personSize = 148.0;
-          const catSize = 128.0;
-
-          return Opacity(
-            opacity: sceneOpacity,
-            child: Stack(
-              children: [
-                _Background(size: size, groundY: groundY, progress: t),
-
-                // 집사(사람)
-                Positioned(
-                  left: size.width * 0.28,
-                  top: groundY - personSize + 18 + breathe,
-                  child: Image.asset(
-                    'assets/images/person_mascot.png',
-                    width: personSize,
-                    height: personSize,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                // 고양이
-                Positioned(
-                  left: catX - catSize * 0.5,
-                  top: groundY - catSize + 30 - runBounce,
-                  child: Transform.rotate(
-                    angle: -runTilt,
-                    child: Transform.scale(
-                      alignment: Alignment.bottomCenter,
-                      scaleX: catScaleX,
-                      scaleY: catScaleY,
-                      child: Image.asset(
-                        'assets/images/cat_mascot.png',
-                        width: catSize,
-                        height: catSize,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 말풍선
-                Positioned(
-                  left: size.width * 0.50,
-                  top: groundY - 158,
-                  child: Opacity(
-                    opacity: bubbleOpacity,
-                    child: Transform.scale(
-                      alignment: Alignment.bottomLeft,
-                      scale: 0.6 + 0.4 * bubbleOpacity,
-                      child: const _SpeechBubble(text: '집사님! 저 왔어요냥~'),
-                    ),
-                  ),
-                ),
-
-                // "냥냥이톡" 타이틀.
-                Align(
-                  alignment: const Alignment(0, 0.32),
-                  child: Opacity(
-                    opacity: titleOpacity,
-                    child: Transform.scale(
-                      scale: 0.85 + 0.15 * titleOpacity,
-                      child: const _TitleLockup(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// 은은한 그러데이션 하늘 + 해 + 구름 + 발바닥 무늬 장식 + 바닥선.
-class _Background extends StatelessWidget {
-  const _Background(
-      {required this.size, required this.groundY, required this.progress});
-
-  final Size size;
-  final double groundY;
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          width: size.width,
-          height: size.height,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _goNext, // 탭하면 건너뛰기
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+              colors: [_bgTop, _bgBottom],
             ),
           ),
-        ),
-        // 해.
-        Positioned(
-          right: -30,
-          top: 40,
-          child: Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFFFD180).withValues(alpha: 0.55),
-            ),
-          ),
-        ),
-        // 구름 두 개 (은은하게 떠다니는 느낌).
-        Positioned(
-          left: 24 + math.sin(progress * math.pi) * 6,
-          top: 70,
-          child: _cloud(0.5),
-        ),
-        Positioned(
-          left: size.width * 0.55 + math.cos(progress * math.pi) * 8,
-          top: 110,
-          child: _cloud(0.35),
-        ),
-        // 바닥 그림자 선.
-        Positioned(
-          left: 0,
-          right: 0,
-          top: groundY + 46,
-          child: Container(
-            height: 2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.0),
-                  Colors.black.withValues(alpha: 0.10),
-                  Colors.black.withValues(alpha: 0.0),
-                ],
+          child: Center(
+            child: SizedBox(
+              width: boxW,
+              height: boxH,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final t = _controller.value;
+                  final catIn = _catIn.value;
+                  final bubbleIn = _bubbleIn.value;
+
+                  // 말하기: 3번 정도 "냐-옹" 하듯 몸을 늘였다 줄이고 고개를 까딱.
+                  final env = _talkEnvelope(t);
+                  final beat = math.sin(t * math.pi * 2 * 3.2).abs();
+                  final talkScaleY = 1 + 0.045 * env * beat;
+                  final talkScaleX = 1 - 0.025 * env * beat;
+                  final tilt = 0.05 * env * math.sin(t * math.pi * 2 * 1.6);
+
+                  final appear = 0.86 + 0.14 * catIn;
+                  final catOpacity = (catIn * 1.6).clamp(0.0, 1.0);
+                  final bubbleOpacity = (bubbleIn * 2).clamp(0.0, 1.0);
+                  final titleIn = _titleIn.value;
+                  final titleOpacity = (titleIn * 1.8).clamp(0.0, 1.0);
+
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // 바닥 그림자
+                      Positioned(
+                        left: (boxW - catSize * 0.62) / 2,
+                        bottom: titleZone,
+                        child: Opacity(
+                          opacity: catOpacity,
+                          child: Transform.scale(
+                            scaleX: talkScaleX,
+                            child: Container(
+                              width: catSize * 0.62,
+                              height: catSize * 0.07,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(catSize),
+                                color: const Color(0xFF4A3D96)
+                                    .withValues(alpha: 0.18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF5B4FA8)
+                                        .withValues(alpha: 0.12),
+                                    blurRadius: 16,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 마스코트 고양이
+                      Positioned(
+                        left: (boxW - catSize) / 2,
+                        bottom: titleZone + catSize * 0.03,
+                        child: Opacity(
+                          opacity: catOpacity,
+                          child: Transform.scale(
+                            scale: appear,
+                            alignment: Alignment.bottomCenter,
+                            child: Transform.rotate(
+                              angle: tilt,
+                              alignment: Alignment.bottomCenter,
+                              child: Transform.scale(
+                                scaleX: talkScaleX,
+                                scaleY: talkScaleY,
+                                alignment: Alignment.bottomCenter,
+                                child: Image(
+                                  image: _mascot,
+                                  width: catSize,
+                                  height: catH,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.medium,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 흰 말풍선 (고양이 머리 오른쪽 위, 꼬리가 고양이를 향함)
+                      Positioned(
+                        left: boxW * 0.48,
+                        top: 0,
+                        child: Opacity(
+                          opacity: bubbleOpacity,
+                          child: Transform.translate(
+                            offset: Offset(0, 12 * (1 - bubbleIn)),
+                            child: Transform.scale(
+                              scale: 0.5 + 0.5 * bubbleIn,
+                              alignment: Alignment.bottomLeft,
+                              child: const _SpeechBubble(
+                                text: '냥!',
+                                color: _ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // "냥냥이톡" 타이틀 (고양이 아래)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: titleZone * 0.18,
+                        child: Opacity(
+                          opacity: titleOpacity,
+                          child: Transform.translate(
+                            offset: Offset(0, 16 * (1 - titleIn)),
+                            child: const Text(
+                              '냥냥이톡',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.8,
+                                color: _ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-          ),
-        ),
-        // 발바닥 무늬 장식 (아주 옅게).
-        Positioned(
-          left: size.width * 0.14,
-          top: groundY - 170,
-          child: Opacity(
-            opacity: 0.18,
-            child: Transform.rotate(
-              angle: -0.3,
-              child: const Icon(Icons.pets, size: 22, color: Color(0xFFFF9933)),
-            ),
-          ),
-        ),
-        Positioned(
-          left: size.width * 0.22,
-          top: groundY - 140,
-          child: Opacity(
-            opacity: 0.14,
-            child: Transform.rotate(
-              angle: -0.2,
-              child: const Icon(Icons.pets, size: 16, color: Color(0xFFFF9933)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _cloud(double opacity) {
-    return Opacity(
-      opacity: opacity,
-      child: const Icon(Icons.cloud, size: 46, color: Colors.white),
-    );
-  }
-}
-
-class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _BubbleTailPainter(),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF6B4A2B),
           ),
         ),
       ),
@@ -328,66 +280,56 @@ class _SpeechBubble extends StatelessWidget {
   }
 }
 
-/// 말풍선 아래쪽에 작은 꼬리(삼각형)를 그려준다.
-class _BubbleTailPainter extends CustomPainter {
+/// 꼬리가 왼쪽 아래(고양이 쪽)를 향하는 흰 말풍선.
+class _SpeechBubble extends StatelessWidget {
+  const _SpeechBubble({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _BubblePainter(),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BubblePainter extends CustomPainter {
+  const _BubblePainter();
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white;
+    const tailH = 14.0;
+    final body = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height - tailH),
+      const Radius.circular(24),
+    );
     final path = Path()
-      ..moveTo(18, size.height - 2)
-      ..lineTo(28, size.height - 2)
-      ..lineTo(16, size.height + 10)
+      ..addRRect(body)
+      ..moveTo(22, size.height - tailH - 1)
+      ..quadraticBezierTo(18, size.height - 4, 8, size.height)
+      ..quadraticBezierTo(30, size.height - 6, 46, size.height - tailH - 1)
       ..close();
-    canvas.drawShadow(path, Colors.black, 2, false);
-    canvas.drawPath(path, paint);
+
+    // 은은한 보랏빛 그림자
+    canvas.drawShadow(
+        path.shift(const Offset(0, 2)), const Color(0x665B4FA8), 10, false);
+    canvas.drawPath(path, Paint()..color = Colors.white);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _TitleLockup extends StatelessWidget {
-  const _TitleLockup();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.pets, color: Color(0xFFFF9933), size: 22),
-            SizedBox(width: 6),
-            Text(
-              '냥냥이톡',
-              style: TextStyle(
-                fontSize: 42,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFFFF9933),
-                shadows: [
-                  Shadow(
-                    color: Colors.black26,
-                    offset: Offset(0, 2),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 6),
-            Icon(Icons.pets, color: Color(0xFFFF9933), size: 22),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '고양이의 마음을 들어보세요',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF8A5A2B).withValues(alpha: 0.8),
-          ),
-        ),
-      ],
-    );
-  }
 }
