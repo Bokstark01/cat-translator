@@ -42,3 +42,4 @@ flutter:
   assets:
     - assets/models/
     - assets/sounds/
+    - assets/images/
